@@ -10,6 +10,7 @@ To download and run the jupyter notebook, please execute the following commands:
 
 ```
 git clone https://github.com/angelmf97/cc_charts.git
+cd cc_charts
 conda create env -f env.yml
 conda activate cc_charts
 jupyter lab use_cases.ipynb

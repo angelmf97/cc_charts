@@ -25,16 +25,13 @@ import hdbscan
 import pandas as pd
 import sys
 from hdbscan import HDBSCAN, approximate_predict
-import matplotlib
-matplotlib.use('cairo')
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-import matplotlib
-matplotlib.use('cairo')
+
 from numpy import mean
 from numpy import std
 from sklearn.datasets import make_multilabel_classification
@@ -763,11 +760,12 @@ class char(BaseSignature, DataSignature):
     def SAFE(self, v, radius=None):
         V1 = self.get_h5_dataset('V')
         #V0 = self.get_h5_dataset('V0')
+        thr = self.get_h5_attr('thr')
+
         with h5py.File(self.data_path) as f:
-            thr = f['thr'][()]
+
             V0 = f['V0']
             V0T = f['V0T']
-
             if radius is None:
                 radius = self.get_h5_attr('radius')
             nn = NearestNeighbors(radius=radius, metric=self.metric, n_jobs=-1)
@@ -795,8 +793,7 @@ class char(BaseSignature, DataSignature):
                 score = -np.log10(p)
                 scorevec[feat_idx] = score
         
-        with h5py.File(self.data_path) as f:
-            max_score = f['max_raw_score'][()]
+        max_score = self.get_h5_attr('max_raw_score')
         
         scorevec = scorevec
         
@@ -854,8 +851,7 @@ class char(BaseSignature, DataSignature):
         
         coords = self.get_h5_dataset('safe_coords')
         
-        with h5py.File(self.data_path) as f:
-            radius = f['radius'][()]
+        radius = self.get_h5_attr('radius')
         
         def get_coords(signature, n_neighbors=5):
             nn = NearestNeighbors(metric=self.metric, n_neighbors=n_neighbors, n_jobs=-1)
@@ -916,7 +912,7 @@ class char(BaseSignature, DataSignature):
         max_score = self.get_h5_attr('max_raw_score')
         pred_scores[pred_scores > max_score] = max_score
         descriptions = [self.space_dict[c] for c in pred_class[order] if c in self.space_dict]
-        res = pd.DataFrame(data=dict(Feature=pred_class[order], Description=descriptions, Score=pred_scores[order]/max_score))
+        res = pd.DataFrame(data=dict(Feature=pred_class[order], Description=descriptions, Score=[f'{a:.2f}' for a in pred_scores[order]/max_score]))
         
         with open(os.path.join(self.diags_path, 'safe_proj.pkl'), 'rb') as fh:
             fig = pickle.load(fh)
@@ -982,7 +978,7 @@ class char(BaseSignature, DataSignature):
 
         
 
-        labels = [self.space_dict[feature] for feature in feats_to_plot] + [molname, 'Neighbourhood']
+        labels = [molname, 'Neighbourhood'] + [self.space_dict[feature] for feature in feats_to_plot]
 
         interactive_legend = plugins.InteractiveLegendPlugin(ax.get_legend_handles_labels()[0],
                                                  labels,
@@ -1372,8 +1368,7 @@ class char(BaseSignature, DataSignature):
             # Save information about the clusters
             with open(os.path.join(self.diags_path, 'clusters.pkl'), 'wb') as fh:
                 pickle.dump((centroids, cluster_nums, strings), fh)
-            import matplotlib
-            matplotlib.use('cairo')
+
             
             # Generate space chart
             fig, axs = plt.subplots(figsize=(10, 10))
